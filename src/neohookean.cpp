@@ -32,7 +32,7 @@ void neohookean_model_scalar(MaterialData & data) {
     double lambda = data.lambda[i];
     double mu = data.mu[i];
 
-    mat3 sigma = (lambda * log(J) * I + mu * B) / J;
+    mat3 sigma = ((lambda * log(J) - mu) * I + mu * B) / J;
 
     for (int r = 0; r < 3; r++) {
       for (int c = 0; c < 3; c++) {
