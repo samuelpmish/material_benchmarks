@@ -3,7 +3,7 @@
 #include "matrix.hpp"
 #include <enoki/array.h>
 
-static constexpr int SIMD_SIZE = 4;
+static constexpr int SIMD_SIZE = 8;
 
 using vdouble = enoki::Array<double, SIMD_SIZE>;
 

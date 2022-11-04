@@ -18,7 +18,8 @@ double random_real() {
 int main() {
 
   timer stopwatch;
-  int n = 1'000'000;
+  int n = 100'000;
+  int num_runs = 5;
 
   std::vector < MaterialData > data(n);
 
@@ -39,10 +40,12 @@ int main() {
   std::cout << "done after " << stopwatch.elapsed() << "s" << std::endl;
 
   stopwatch.start();
-  for (int i = 0; i < n; i++) {
-    neohookean_model_scalar(data[i]);
+  for (int k = 0; k < num_runs; k++) {
+    for (int i = 0; i < n; i++) {
+      neohookean_model_scalar(data[i]);
+    }
+    compiler::please_dont_optimize_away(&data);
   }
-  compiler::please_dont_optimize_away(&data);
   stopwatch.stop();
   std::cout << "naive implementation: " << stopwatch.elapsed() << "s" << std::endl;
 
@@ -59,10 +62,12 @@ int main() {
   }
 
   stopwatch.start();
-  for (int i = 0; i < n; i++) {
-    neohookean_model_simd(data[i]);
+  for (int k = 0; k < num_runs; k++) {
+    for (int i = 0; i < n; i++) {
+      neohookean_model_simd(data[i]);
+    }
+    compiler::please_dont_optimize_away(&data);
   }
-  compiler::please_dont_optimize_away(&data);
   stopwatch.stop();
   std::cout << "vectorized implementation: " << stopwatch.elapsed() << "s" << std::endl;
 
