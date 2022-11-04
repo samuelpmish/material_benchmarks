@@ -7,6 +7,7 @@ add_compile_definitions(_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS)
 
 set(CMAKE_CXX_STANDARD 17)
 
+set(ENABLE_ASAN FALSE)
 if (ENABLE_ASAN)
   add_link_options(-fsanitize=address)
   add_compile_options(-fsanitize=address)

@@ -113,6 +113,7 @@ constexpr auto dot(const matrix<S, m, n>& A, const matrix<T, n, p>& B) {
   matrix<decltype(S{} * T{}), m, p> AB{};
   for (int i = 0; i < m; i++) {
     for (int j = 0; j < p; j++) {
+      AB(i,j) = 0.0;
       for (int k = 0; k < n; k++) {
         AB(i,j) = AB(i,j) + A(i,k) * B(k,j);
       }

@@ -10,16 +10,15 @@ static void please_dont_optimize_away([[maybe_unused]] void* p) { asm volatile("
 }
 
 double random_real() { 
-  std::default_random_engine generator;
-  std::uniform_real_distribution<double> distribution(-1.0, 1.0);
+  static std::default_random_engine generator;
+  static std::uniform_real_distribution<double> distribution(-1.0, 1.0);
   return distribution(generator);
 }
 
 int main() {
 
   timer stopwatch;
-  //int n = 1'000'000;
-  int n = 1'000;
+  int n = 1'000'000;
 
   std::vector < MaterialData > data(n);
 
@@ -50,7 +49,7 @@ int main() {
   std::vector < double > answers(n * 9 * BLOCK_SIZE);
   int count = 0;
   for (int i = 0; i < n; i++) {
-    for (int j = 0; j < n; j++) {
+    for (int j = 0; j < BLOCK_SIZE; j++) {
       for (int row = 0; row < 3; row++) {
         for (int col = 0; col < 3; col++) {
           answers[count++] = data[i].stress[row][col][j];
@@ -67,18 +66,21 @@ int main() {
   stopwatch.stop();
   std::cout << "vectorized implementation: " << stopwatch.elapsed() << "s" << std::endl;
 
+  double norm = 0.0;
   double error = 0.0;
   count = 0;
   for (int i = 0; i < n; i++) {
-    for (int j = 0; j < n; j++) {
+    for (int j = 0; j < BLOCK_SIZE; j++) {
       for (int row = 0; row < 3; row++) {
         for (int col = 0; col < 3; col++) {
-          double diff = answers[count++] - data[i].stress[row][col][j];
+          double value = data[i].stress[row][col][j];
+          double diff = answers[count++] - value;
+          norm += value * value;
           error += diff * diff;
         }
       }
     }
   }
-  std::cout << "frobenius error: " << sqrt(error) << std::endl;
+  std::cout << "relative frobenius error: " << sqrt(error / norm) << std::endl;
 
 }
