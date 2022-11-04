@@ -120,3 +120,4 @@ constexpr auto dot(const matrix<S, m, n>& A, const matrix<T, n, p>& B) {
   }
   return AB;
 }
+

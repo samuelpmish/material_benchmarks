@@ -1,3 +1,5 @@
+#pragma once
+
 static constexpr int BLOCK_SIZE = 16;
 
 struct MaterialData {
@@ -7,6 +9,5 @@ struct MaterialData {
   double stress[3][3][BLOCK_SIZE];
 };
 
-void linear_isotropic_model(MaterialData & data);
-void neohookean_model(MaterialData & data);
-void j2_plasticity_model(MaterialData & data);
+void neohookean_model_simd(MaterialData & data);
+void neohookean_model_scalar(MaterialData & data);
