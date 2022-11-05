@@ -7,6 +7,8 @@ static constexpr int SIMD_SIZE = 8;
 
 using vdouble = enoki::Array<double, SIMD_SIZE>;
 
+namespace enoki {
+
 template < int m, int n, int k >
 matrix< vdouble, m, n > load(const double (&arrays)[m][n][k], int i) {
   matrix< vdouble, m, n> F;
@@ -25,4 +27,6 @@ void store(double (&arrays)[m][n][k], int i, const matrix< vdouble, m, n > & dat
       enoki::store_unaligned(arrays[r][c] + i, data(r, c));
     }
   }
+}
+
 }

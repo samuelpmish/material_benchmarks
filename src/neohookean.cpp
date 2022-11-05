@@ -13,7 +13,7 @@ void foo(double * a, double * b, double * c) {
   }
 }
 
-void neohookean_model_scalar(MaterialData & data) {
+void neohookean_model_scalar(NeohookeanMaterialData & data) {
 
   using mat3 = matrix<double, 3, 3>;
 
@@ -43,12 +43,12 @@ void neohookean_model_scalar(MaterialData & data) {
 
 }
 
-void neohookean_model_simd(MaterialData & data) {
+void neohookean_model_simd(NeohookeanMaterialData & data) {
 
   using mat3 = matrix<vdouble, 3, 3>;
 
   for (int i = 0; i < BLOCK_SIZE; i += SIMD_SIZE) {
-    mat3 F = load(data.deformation_gradient, i);
+    mat3 F = enoki::load(data.deformation_gradient, i);
     vdouble J = det(F);
 
     // note: there's an issue with doing matrix / vdouble,
@@ -62,7 +62,7 @@ void neohookean_model_simd(MaterialData & data) {
     mat3 B = dot(F, transpose(F));
     mat3 sigma = ((lambda * log(J) - mu) * I + mu * B) * one_over_J;
 
-    store(data.stress, i, sigma);
+    enoki::store(data.stress, i, sigma);
   }
 
 }
