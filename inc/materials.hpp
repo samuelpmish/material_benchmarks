@@ -1,6 +1,6 @@
 #pragma once
 
-static constexpr int BLOCK_SIZE = 16;
+static constexpr int BLOCK_SIZE = 32;
 
 struct NeohookeanMaterialData {
 

@@ -3,7 +3,7 @@
 #include "matrix.hpp"
 #include <enoki/array.h>
 
-static constexpr int SIMD_SIZE = 8;
+static constexpr int SIMD_SIZE = 4;
 
 using vdouble = enoki::Array<double, SIMD_SIZE>;
 
@@ -28,5 +28,19 @@ void store(double (&arrays)[m][n][k], int i, const matrix< vdouble, m, n > & dat
     }
   }
 }
+
+template < int m, int n >
+matrix<vdouble,m,n> select(const enoki::Mask<double, SIMD_SIZE> true_or_false, 
+                           const matrix< vdouble, m, n > & value_if_true,
+                           const matrix< vdouble, m, n > & value_if_false) {
+  matrix<vdouble,m,n> output;
+  for (int r = 0; r < m; r++) {
+    for (int c = 0; c < n; c++) {
+      output(r,c) = select(true_or_false, value_if_true(r,c), value_if_false(r,c));
+    }
+  }
+  return output;
+}
+
 
 }
