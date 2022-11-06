@@ -21,8 +21,8 @@ void neohookean_test(int n, int num_runs) {
 
   std::vector < NeohookeanMaterialData > data(n);
 
-  std::cout << "generating input data ... ";
-  stopwatch.start();
+  std::cout << "NeoHookean model comparison test" << std::endl;
+  std::cout << "  generating input data ... " << std::endl;
   for (int i = 0; i < n; i++) {
     for (int j = 0; j < BLOCK_SIZE; j++) {
       data[i].lambda[j] = 100.0 + 20.0 * random_real();
@@ -34,9 +34,8 @@ void neohookean_test(int n, int num_runs) {
       }
     } 
   }
-  stopwatch.stop();
-  std::cout << "done after " << stopwatch.elapsed() << "s" << std::endl;
 
+  std::cout << "       naive implementation: ";
   stopwatch.start();
   for (int k = 0; k < num_runs; k++) {
     for (int i = 0; i < n; i++) {
@@ -45,7 +44,7 @@ void neohookean_test(int n, int num_runs) {
     compiler::please_dont_optimize_away(&data);
   }
   stopwatch.stop();
-  std::cout << "naive implementation: " << stopwatch.elapsed() << "s" << std::endl;
+  std::cout << stopwatch.elapsed() / num_runs << "s per run" << std::endl;
 
   std::vector < double > answers(n * 9 * BLOCK_SIZE);
   int count = 0;
@@ -59,6 +58,7 @@ void neohookean_test(int n, int num_runs) {
     }
   }
 
+  std::cout << "  vectorized implementation: ";
   stopwatch.start();
   for (int k = 0; k < num_runs; k++) {
     for (int i = 0; i < n; i++) {
@@ -67,7 +67,7 @@ void neohookean_test(int n, int num_runs) {
     compiler::please_dont_optimize_away(&data);
   }
   stopwatch.stop();
-  std::cout << "vectorized implementation: " << stopwatch.elapsed() << "s" << std::endl;
+  std::cout << stopwatch.elapsed() / num_runs << "s per run" << std::endl;
 
   double norm = 0.0;
   double error = 0.0;
@@ -84,7 +84,9 @@ void neohookean_test(int n, int num_runs) {
       }
     }
   }
-  std::cout << "relative frobenius error: " << sqrt(error / norm) << std::endl;
+  std::cout << "relative frobenius error (stress): " << sqrt(error / norm) << std::endl;
+  std::cout << std::endl;
+  std::cout << std::endl;
 
 }
 
@@ -94,13 +96,13 @@ void J2_plasticity_test(int n, int num_runs) {
 
   std::vector < J2MaterialData > data(n);
 
-  std::cout << "generating input data for J2 plasticity test ... ";
-  stopwatch.start();
+  std::cout << "J2 plasticity model comparison test" << std::endl;
+  std::cout << "  generating input data ... " << std::endl;
   for (int i = 0; i < n; i++) {
     for (int j = 0; j < BLOCK_SIZE; j++) {
       data[i].K[j]  = 100.0 + 20.0 * random_real();
       data[i].mu[j] = 100.0 + 20.0 * random_real();
-      data[i].sigma_y[j] = 1000.0;
+      data[i].sigma_y[j] = 0.1;
       data[i].alpha[j] = 1.0 + random_real();
       for (int row = 0; row < 3; row++) {
         for (int col = 0; col < 3; col++) {
@@ -114,9 +116,10 @@ void J2_plasticity_test(int n, int num_runs) {
       }
     } 
   }
-  stopwatch.stop();
-  std::cout << "done after " << stopwatch.elapsed() << "s" << std::endl;
 
+  std::vector < J2MaterialData > data_copy = data;
+
+  std::cout << "       naive J2 implementation: ";
   stopwatch.start();
   for (int k = 0; k < num_runs; k++) {
     for (int i = 0; i < n; i++) {
@@ -125,53 +128,91 @@ void J2_plasticity_test(int n, int num_runs) {
     compiler::please_dont_optimize_away(&data);
   }
   stopwatch.stop();
-  std::cout << "naive J2 implementation: " << stopwatch.elapsed() << "s" << std::endl;
+  std::cout << stopwatch.elapsed() / num_runs << "s per run" << std::endl;
 
-  std::vector < double > answers(n * 9 * BLOCK_SIZE);
+  std::vector < double > F_old(n * 9 * BLOCK_SIZE);
+  std::vector < double > be_bar(n * 9 * BLOCK_SIZE);
+  std::vector < double > alpha(n * BLOCK_SIZE);
+  std::vector < double > tau(n * 9 * BLOCK_SIZE);
   int count = 0;
   for (int i = 0; i < n; i++) {
     for (int j = 0; j < BLOCK_SIZE; j++) {
       for (int row = 0; row < 3; row++) {
         for (int col = 0; col < 3; col++) {
-          answers[count++] = data[i].tau[row][col][j];
+          F_old[count] = data[i].F_old[row][col][j];
+          be_bar[count] = data[i].be_bar[row][col][j];
+          tau[count] = data[i].tau[row][col][j];
+          count++;
         }
       }
+      alpha[i * BLOCK_SIZE + j] = data[i].alpha[j];
     }
   }
 
+  data = data_copy;
+
+  std::cout << "  vectorized J2 implementation: "; 
   stopwatch.start();
   for (int k = 0; k < num_runs; k++) {
     for (int i = 0; i < n; i++) {
-      J2_plasticity_model_scalar(data[i]);
+      J2_plasticity_model_simd(data[i]);
     }
     compiler::please_dont_optimize_away(&data);
   }
   stopwatch.stop();
-  std::cout << "vectorized J2 implementation: " << stopwatch.elapsed() << "s" << std::endl;
+  std::cout << stopwatch.elapsed() / num_runs << "s per run" << std::endl;
 
-  double norm = 0.0;
-  double error = 0.0;
+  double norm[4] = {};
+  double error[4] = {};
   count = 0;
   for (int i = 0; i < n; i++) {
     for (int j = 0; j < BLOCK_SIZE; j++) {
       for (int row = 0; row < 3; row++) {
         for (int col = 0; col < 3; col++) {
-          double value = data[i].tau[row][col][j];
-          double diff = answers[count++] - value;
-          norm += value * value;
-          error += diff * diff;
+          {
+            double value = data[i].F_old[row][col][j];
+            double diff = F_old[count] - value;
+            norm[0] += value * value;
+            error[0] += diff * diff;
+          }
+
+          {
+            double value = data[i].be_bar[row][col][j];
+            double diff = be_bar[count] - value;
+            norm[1] += value * value;
+            error[1] += diff * diff;
+          }
+
+          {
+            double value = data[i].tau[row][col][j];
+            double diff = tau[count] - value;
+            norm[2] += value * value;
+            error[2] += diff * diff;
+          }
+
+          count++;
         }
       }
+
+      double value = data[i].alpha[j];
+      double diff = alpha[i * BLOCK_SIZE + j] - value;
+      norm[3] += value * value;
+      error[3] += diff * diff;
     }
   }
-  std::cout << "relative frobenius error: " << sqrt(error / norm) << std::endl;
+  std::cout << "relative frobenius error (F):      " << sqrt(error[0] / norm[0]) << std::endl;
+  std::cout << "relative frobenius error (be_bar): " << sqrt(error[1] / norm[1]) << std::endl;
+  std::cout << "relative frobenius error (tau):    " << sqrt(error[2] / norm[2]) << std::endl;
+  std::cout << "relative frobenius error (alpha):  " << sqrt(error[3] / norm[3]) << std::endl;
+  std::cout << std::endl;
+  std::cout << std::endl;
 
 }
 
 int main() {
 
   int n = 100'000;
-  int num_runs = 5;
+  int num_runs = 10;
 
   neohookean_test(n, num_runs);
   J2_plasticity_test(n, num_runs);
