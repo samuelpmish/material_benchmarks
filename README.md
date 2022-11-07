@@ -28,8 +28,19 @@ cmake --build build
 ```
 $ cd build
 $ ./perf_test 
-generating input data ... done after 1.08317s
-naive implementation: 0.25841s
-vectorized implementation: 0.105212s
-relative frobenius error: 5.35354e-16
+NeoHookean model comparison test
+  generating input data ... 
+       naive implementation: 0.107443s per run
+  vectorized implementation: 0.0450564s per run
+relative frobenius error (stress): 4.17544e-16
+
+
+J2 plasticity model comparison test
+  generating input data ... 
+       naive J2 implementation: 0.332499s per run
+  vectorized J2 implementation: 0.131363s per run
+relative frobenius error (F):      0
+relative frobenius error (be_bar): 3.22516e-15
+relative frobenius error (tau):    2.25052e-15
+relative frobenius error (alpha):  9.12279e-19
 ```
