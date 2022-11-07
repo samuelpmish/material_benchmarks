@@ -203,8 +203,7 @@ constexpr auto dot(const matrix<S, m, n>& A, const matrix<T, n, p>& B) {
     for (int j = 0; j < p; j++) {
       AB(i,j) = 0.0;
       for (int k = 0; k < n; k++) {
-        //AB(i,j) = AB(i,j) + A(i,k) * B(k,j);
-        //AB(i,j) += A(i,k), B(k,j);
+        //AB(i,j) += A(i,k) * B(k,j);
         AB(i,j) = fmadd(A(i,k), B(k,j), AB(i,j));
       }
     }
