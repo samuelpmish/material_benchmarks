@@ -82,6 +82,7 @@ void check_answers(const std::vector < J2MaterialData > & A,
   }
 }
 
+template < bool RDC >
 __global__ void J2_kernel(J2MaterialData * data, int n) {
 
   int i = threadIdx.y + blockIdx.x * blockDim.y;
@@ -100,7 +101,11 @@ __global__ void J2_kernel(J2MaterialData * data, int n) {
       }
     }
 
-    J2_plasticity_model_cuda(tdata); 
+    if constexpr (RDC) {
+      J2_plasticity_model_cuda(tdata); 
+    } else {
+      J2_plasticity_model_cuda_no_rdc(tdata); 
+    }
 
     data[i].alpha[threadIdx.x] = tdata.alpha;
     for (int r = 0; r < 3; r++) {
@@ -205,7 +210,28 @@ void J2_plasticity_test(int n, int num_runs) {
   for (int k = 0; k < num_runs; k++) {
     dim3 block {BLOCK_SIZE, 4, 1};
     dim3 grid {uint32_t(n) / 4, 1, 1};
-    J2_kernel<<<grid, block>>>(data_d, n);
+    J2_kernel<true><<<grid, block>>>(data_d, n);
+    compiler::please_dont_optimize_away(&data_d);
+  }
+  cudaDeviceSynchronize();
+  stopwatch.stop();
+  std::cout << stopwatch.elapsed() / num_runs << "s per run" << std::endl;
+
+  cudaMemcpy(&data[0], data_d, sizeof(J2MaterialData) * n, cudaMemcpyDeviceToHost);
+  cudaDeviceSynchronize();
+  cudaFree(data_d);
+
+  check_answers(answers, data);
+
+  std::cout << "            cuda (no rdc) J2 implementation: "; 
+  cudaMalloc(&data_d, sizeof(J2MaterialData) * n);
+  cudaMemcpy(data_d, &data_copy[0], sizeof(J2MaterialData) * n, cudaMemcpyHostToDevice);
+
+  stopwatch.start();
+  for (int k = 0; k < num_runs; k++) {
+    dim3 block {BLOCK_SIZE, 4, 1};
+    dim3 grid {uint32_t(n) / 4, 1, 1};
+    J2_kernel<true><<<grid, block>>>(data_d, n);
     compiler::please_dont_optimize_away(&data_d);
   }
   cudaDeviceSynchronize();
@@ -222,16 +248,13 @@ void J2_plasticity_test(int n, int num_runs) {
 
 int main(int argc, char *argv[]) {
 
-  int n = 1000000;
-  int num_runs = 5;
+  int n = 100000;
+  int num_runs = 3;
 
   if (argc >= 2) {
     n = atoi(argv[1]);
   }
 
-  //int n = 1 << 8;
-
-  //neohookean_test(n, num_runs);
   J2_plasticity_test(n, num_runs);
 
 }
