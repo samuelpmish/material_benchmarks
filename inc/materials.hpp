@@ -1,5 +1,7 @@
 #pragma once
 
+#include "matrix.hpp"
+
 static constexpr int BLOCK_SIZE = 32;
 
 struct NeohookeanMaterialData {
@@ -39,7 +41,33 @@ struct J2MaterialData {
 
 };
 
+
+
 // Implementation of J2 material model with isotropic hardening
 // from Box 9.1 of "Computational Inelasticity" by Simo and Hughes
 void J2_plasticity_model_scalar(J2MaterialData & data);
 void J2_plasticity_model_simd(J2MaterialData & data);
+
+#ifdef __CUDACC__
+struct J2MaterialDataScalar {
+
+  // material properties
+  double K;
+  double mu;
+  double sigma_y;
+
+  // internal variables
+  matrix<double,3,3> F_old;
+  matrix<double,3,3> be_bar_old;
+  double alpha;
+
+  // input
+  matrix<double,3,3> F_new;
+
+  // output
+  matrix<double,3,3> tau;
+
+};
+
+__device__ void J2_plasticity_model_cuda(J2MaterialDataScalar & data);
+#endif

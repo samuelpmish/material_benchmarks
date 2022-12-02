@@ -59,6 +59,7 @@ void J2_plasticity_model_scalar(J2MaterialData & data) {
     store(data.F_old, i, F_new);
     store(data.tau, i, (J_new * p_new) * I + s_new);
     store(data.be_bar, i, (s_new / mu) + Ie_bar_new * I);
+
     data.alpha[i] = alpha;
 
   }

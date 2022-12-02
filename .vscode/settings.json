@@ -1,6 +1,24 @@
 {
+  "cmake.configureArgs": [
+      //"-DCMAKE_CXX_FLAGS=-ftime-trace",
+      "-DENABLE_TESTING=True",
+      //"-DENABLE_ASAN=True",
+      "-DENABLE_CUDA=True",
+      "-DCMAKE_CUDA_ARCHITECTURES=70",
+      "-DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc"
+  ],
   "lldb.displayFormat": "auto",
   "lldb.dereferencePointers": true,
   "lldb.consoleMode": "commands",
-  "compilerexplorer.compilationDirectory": "${workspaceFolder}/build"
+  "compilerexplorer.compilationDirectory": "${workspaceFolder}/build",
+  "files.associations": {
+    "typeinfo": "cpp",
+    "typeindex": "cpp",
+    "array": "cpp",
+    "string": "cpp",
+    "string_view": "cpp",
+    "ranges": "cpp",
+    "span": "cpp",
+    "ostream": "cpp"
+  }
 }
