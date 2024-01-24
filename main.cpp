@@ -243,7 +243,62 @@ void J2_plasticity_test(int n, int num_runs) {
 
 }
 
-//template void J2_plasticity_model_portable<vdouble>(PortableJ2MaterialData<vdouble> & data);
+void axpy(std::vector< double > & z, double a, const std::vector< double > & x, 
+    std::vector< double > & y) {
+  for (int i = 0; i < x.size(); i++) {
+    z[i] = a * x[i] + y[i];
+  }
+}
+
+void axpy_SIMD(std::vector< double > & z, double a, const std::vector< double > & x, 
+    std::vector< double > & y) {
+  for (int i = 0; i < x.size(); i += SIMD_SIZE) {
+    vdouble vx = enoki::load_unaligned<vdouble>(x.data() + i);
+    vdouble vy = enoki::load_unaligned<vdouble>(y.data() + i);
+    enoki::store_unaligned(z.data() + i, a * vx + vy);
+  }
+}
+
+void axpy_test() {
+
+  timer stopwatch;
+
+  int n = 1 << 22;
+  int num_runs = 16;
+
+  std::vector < double > x(n);
+  std::vector < double > y(n);
+  std::vector < double > z(n);
+  std::vector < double > expected(n);
+
+  std::cout << "axpy comparison test" << std::endl;
+  std::cout << "  generating input data ... " << std::endl;
+  for (int i = 0; i < n; i++) {
+    x[i] = random_real();
+    y[i] = random_real();
+    expected[i] = 2.0 * x[i] + y[i];
+  }
+
+  std::cout << "       original axpy implementation: ";
+  stopwatch.start();
+  for (int k = 0; k < num_runs; k++) {
+    axpy(z, 2.0, x, y);
+    compiler::please_dont_optimize_away(&z);
+  }
+  stopwatch.stop();
+  std::cout << stopwatch.elapsed() / num_runs << "s per run" << std::endl;
+
+
+  std::cout << "       SIMD axpy implementation: ";
+  stopwatch.start();
+  for (int k = 0; k < num_runs; k++) {
+    axpy_SIMD(z, 2.0, x, y);
+    compiler::please_dont_optimize_away(&z);
+  }
+  stopwatch.stop();
+  std::cout << stopwatch.elapsed() / num_runs << "s per run" << std::endl;
+
+}
 
 int main() {
 
@@ -252,5 +307,6 @@ int main() {
 
   neohookean_test(n, num_runs);
   J2_plasticity_test(n, num_runs);
+  axpy_test();
 
 }
