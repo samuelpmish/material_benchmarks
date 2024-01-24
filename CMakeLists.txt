@@ -27,10 +27,15 @@ endif()
 target_include_directories(materials PUBLIC inc)
 target_include_directories(materials SYSTEM PUBLIC enoki/include)
 target_compile_options(materials PUBLIC ${ENOKI_NATIVE_FLAGS}) # for enabling SIMD instructions
-#target_compile_options(materials PUBLIC -save-temps) # for viewing disassembly
+target_compile_options(materials PUBLIC -save-temps) # for viewing disassembly
 
 add_executable(perf_test main.cpp)
 target_link_libraries(perf_test PUBLIC materials)
+
+find_package(OpenMP REQUIRED)
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(perf_test PUBLIC OpenMP::OpenMP_CXX)
+endif()
 
 if (ENABLE_CUDA) 
   add_executable(cuda_perf_test main.cu)

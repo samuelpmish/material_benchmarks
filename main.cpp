@@ -1,7 +1,9 @@
 #include "materials.hpp"
 
 #include "timer.hpp"
+#include "enoki.hpp"
 
+#include <omp.h>
 #include <random>
 #include <iostream>
 
@@ -58,6 +60,37 @@ void neohookean_test(int n, int num_runs) {
     }
   }
 
+  std::cout << "       omp simd implementation: ";
+  stopwatch.start();
+  for (int k = 0; k < num_runs; k++) {
+    #pragma omp for simd
+    for (int i = 0; i < n; i++) {
+      neohookean_model_scalar(data[i]);
+    }
+    compiler::please_dont_optimize_away(&data);
+  }
+  stopwatch.stop();
+  std::cout << stopwatch.elapsed() / num_runs << "s per run" << std::endl;
+
+  double norm = 0.0;
+  double error = 0.0;
+  count = 0;
+  for (int i = 0; i < n; i++) {
+    for (int j = 0; j < BLOCK_SIZE; j++) {
+      for (int row = 0; row < 3; row++) {
+        for (int col = 0; col < 3; col++) {
+          double value = data[i].stress[row][col][j];
+          double diff = answers[count++] - value;
+          norm += value * value;
+          error += diff * diff;
+        }
+      }
+    }
+  }
+  std::cout << "relative frobenius error (stress): " << sqrt(error / norm) << std::endl;
+  std::cout << std::endl;
+  std::cout << std::endl;
+
   std::cout << "  vectorized implementation: ";
   stopwatch.start();
   for (int k = 0; k < num_runs; k++) {
@@ -69,8 +102,8 @@ void neohookean_test(int n, int num_runs) {
   stopwatch.stop();
   std::cout << stopwatch.elapsed() / num_runs << "s per run" << std::endl;
 
-  double norm = 0.0;
-  double error = 0.0;
+  norm = 0.0;
+  error = 0.0;
   count = 0;
   for (int i = 0; i < n; i++) {
     for (int j = 0; j < BLOCK_SIZE; j++) {
@@ -122,6 +155,7 @@ void J2_plasticity_test(int n, int num_runs) {
   std::cout << "       naive J2 implementation: ";
   stopwatch.start();
   for (int k = 0; k < num_runs; k++) {
+    #pragma omp simd
     for (int i = 0; i < n; i++) {
       J2_plasticity_model_scalar(data[i]);
     }
@@ -208,6 +242,8 @@ void J2_plasticity_test(int n, int num_runs) {
   std::cout << std::endl;
 
 }
+
+//template void J2_plasticity_model_portable<vdouble>(PortableJ2MaterialData<vdouble> & data);
 
 int main() {
 
